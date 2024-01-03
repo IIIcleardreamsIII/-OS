@@ -52,6 +52,11 @@
             <version>3.0.3</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-core</artifactId>
+            <version>8.5.29</version>
+        </dependency>
     </dependencies>
 
     <build>
