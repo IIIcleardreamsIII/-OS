@@ -1,77 +1,131 @@
 package com.example.filemanage.service;
 
-import com.example.filemanage.Model.DirectoryModel;
-import com.example.filemanage.Model.FileModel;
+import java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.List;
 
-// FileSystemService.java
 public class FileSystemService {
-    private DirectoryModel currentDirectory;
+    private Path rootPath;
+    private Path currentDirectory;
 
     public FileSystemService() {
-        this.currentDirectory = new DirectoryModel("root", null);
+        // 根目录设置为 D 盘的 "111" 文件夹
+        this.rootPath = Paths.get("D:\\111");
+        this.currentDirectory = rootPath;
+        initRootDirectory();
+    }
+
+    private void initRootDirectory() {
+        if (!Files.exists(rootPath)) {
+            try {
+                Files.createDirectory(rootPath);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public void createFile(String filename, String content) {
-        FileModel newFile = new FileModel(filename, content);
-        currentDirectory.addFile(newFile);
+        Path filePath = currentDirectory.resolve(filename);
+        try {
+            Files.write(filePath, content.getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public FileModel openFile(String filename) {
-        return currentDirectory.getFile(filename);
+    public String readFile(String filename) {
+        Path filePath = currentDirectory.resolve(filename);
+        try {
+            return Files.readString(filePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    public String readFile(FileModel file) {
-        return file.getContent();
-    }
-
-    public void writeFile(FileModel file, String content) {
-        file.setContent(content);
+    public void writeFile(String filename, String content) {
+        Path filePath = currentDirectory.resolve(filename);
+        try {
+            Files.write(filePath, content.getBytes(), StandardOpenOption.CREATE);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void deleteFile(String filename) {
-        currentDirectory.removeFile(filename);
+        Path filePath = currentDirectory.resolve(filename);
+        try {
+            Files.deleteIfExists(filePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void createDirectory(String dirname) {
-        DirectoryModel newDirectory = new DirectoryModel(dirname, currentDirectory);
-        currentDirectory.addSubdirectory(newDirectory);
+        Path dirPath = currentDirectory.resolve(dirname);
+        try {
+            Files.createDirectory(dirPath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void deleteDirectory(String dirname) {
-        DirectoryModel directoryToRemove = null;
-        for (DirectoryModel directory : currentDirectory.getSubdirectories()) {
-            if (directory.getName().equals(dirname)) {
-                directoryToRemove = directory;
-                break;
-            }
-        }
-        if (directoryToRemove != null) {
-            currentDirectory.getSubdirectories().remove(directoryToRemove);
+        Path dirPath = currentDirectory.resolve(dirname);
+        try {
+            Files.walkFileTree(dirPath, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.delete(file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    public void listFilesAndDirectories() {
-        System.out.println("Files:");
-        for (FileModel file : currentDirectory.getFiles()) {
-            System.out.println("- " + file.getName());
+    public List<String> listFilesAndDirectories() {
+        try {
+            return Files.list(currentDirectory)
+                    .map(Path::getFileName)
+                    .map(Path::toString)
+                    .toList();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-        System.out.println("Directories:");
-        for (DirectoryModel directory : currentDirectory.getSubdirectories()) {
-            System.out.println("- " + directory.getName());
-        }
+        return List.of();
     }
 
     public void changeDirectory(String dirname) {
-        DirectoryModel newCurrentDirectory = currentDirectory.getSubdirectory(dirname);
-        if (newCurrentDirectory != null) {
-            currentDirectory = newCurrentDirectory;
+        Path newDirPath;
+
+        if (dirname.equals("..")) {
+            // 切换到上一级目录
+            newDirPath = currentDirectory.getParent();
         } else {
-            System.out.println("Directory not found: " + dirname);
+            // 切换到指定目录
+            newDirPath = currentDirectory.resolve(dirname);
+        }
+
+        if (Files.isDirectory(newDirPath)) {
+            currentDirectory = newDirPath;
+        } else {
+            System.out.println("目录未找到: " + dirname);
         }
     }
 
-    public DirectoryModel getCurrentDirectory() {
+
+    public Path getCurrentDirectory() {
         return currentDirectory;
     }
+
 }
