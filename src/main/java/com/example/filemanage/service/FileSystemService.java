@@ -8,11 +8,13 @@ import java.util.List;
 public class FileSystemService {
     private Path rootPath;
     private Path currentDirectory;
+    private Path previousDirectory;
 
     public FileSystemService() {
         // 根目录设置为 D 盘的 "111" 文件夹
         this.rootPath = Paths.get("D:\\111");
         this.currentDirectory = rootPath;
+        this.previousDirectory = rootPath;
         initRootDirectory();
     }
 
@@ -109,23 +111,22 @@ public class FileSystemService {
         Path newDirPath;
 
         if (dirname.equals("..")) {
-            // 切换到上一级目录
-            newDirPath = currentDirectory.getParent();
+            // 切换到上一个目录
+            newDirPath = previousDirectory;
         } else {
             // 切换到指定目录
             newDirPath = currentDirectory.resolve(dirname);
         }
 
         if (Files.isDirectory(newDirPath)) {
+            previousDirectory = currentDirectory;
             currentDirectory = newDirPath;
         } else {
             System.out.println("目录未找到: " + dirname);
         }
     }
 
-
     public Path getCurrentDirectory() {
         return currentDirectory;
     }
-
 }
